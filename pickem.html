@@ -381,6 +381,11 @@ async function fsGetResults(weekId){
   const doc = await db.collection("results").doc(weekId).get();
   return doc.exists ? doc.data() : {};
 }
+async function fsGetOnePick(weekId, name){
+  requireFirebase();
+  const doc = await db.collection("picks").doc(`${weekId}_${name.toLowerCase()}`).get();
+  return doc.exists ? doc.data() : null;
+}
 async function fsSaveResults(weekId, results){
   requireFirebase();
   await db.collection("results").doc(weekId).set(results);
@@ -440,6 +445,7 @@ function onWeekChange(weekId){
   myPicks = {};
   myTiebreaker = null;
   submitted = false;
+  lastLoadedName = "";
   showTab('picks');
 }
 
@@ -471,8 +477,8 @@ function renderPicksForm(){
   const fg = finalGame();
   let html = `<div class="card">
     <label class="field-label">Your name</label><br/>
-    <input class="name-field" id="nameInput" placeholder="e.g. Jordan" value="${myName.replace(/"/g,'')}" oninput="onNameInput(this.value)"/>
-    <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Picks lock at ${deadlineLabel()} — no one can see your picks before then, including other players.</p>
+    <input class="name-field" id="nameInput" placeholder="e.g. Jordan" value="${myName.replace(/"/g,'')}" oninput="onNameInput(this.value)" onblur="onNameBlur(this.value)"/>
+    <p id="loadStatus" style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Picks lock at ${deadlineLabel()} — no one can see your picks before then, including other players.</p>
   </div>`;
   games().forEach(g=>{
     const pick = myPicks[g.id];
@@ -505,6 +511,30 @@ function onNameInput(v){
   myName = v;
   const btn = document.getElementById('submitBtn');
   if(btn) btn.disabled = !myName.trim() || Object.keys(myPicks).length < games().length || myTiebreaker===null || myTiebreaker==='';
+}
+
+let lastLoadedName = "";
+async function onNameBlur(v){
+  const name = v.trim();
+  if(!name || name.toLowerCase() === lastLoadedName) return;
+  const statusEl = document.getElementById('loadStatus');
+  const originalStatusText = statusEl ? statusEl.textContent : '';
+  if(statusEl) statusEl.textContent = 'Checking for your previous picks...';
+  try{
+    const existing = await fsGetOnePick(currentWeek, name);
+    lastLoadedName = name.toLowerCase();
+    if(existing){
+      myPicks = existing.picks || {};
+      myTiebreaker = (existing.tiebreaker !== undefined) ? existing.tiebreaker : null;
+      renderPicksForm();
+      const s = document.getElementById('loadStatus');
+      if(s) s.textContent = '✓ Loaded your previous picks — change anything you like, then submit again.';
+    } else {
+      if(statusEl) statusEl.textContent = originalStatusText;
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent = originalStatusText;
+  }
 }
 
 function onTiebreakerInput(v){
