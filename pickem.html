@@ -1,0 +1,714 @@
+<style>
+  :root{
+    --turf:#1F3D2B;
+    --turf-dark:#152A1D;
+    --chalk:#F3EFE3;
+    --line:#E7E0CC;
+    --leather:#9C5630;
+    --leather-dark:#7A4325;
+    --ink:#1A1F19;
+    --ink-soft:#5B6459;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .pool-app{
+    background:var(--chalk);
+    color:var(--ink);
+    font-family:'Segoe UI',Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    padding:0 0 40px;
+  }
+  .pool-header{
+    background:var(--turf);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 40px);
+    color:var(--chalk);
+    padding:22px 18px 20px;
+    border-bottom:4px solid var(--leather);
+  }
+  .pool-eyebrow-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .pool-eyebrow{
+    font-size:13px;
+    color:#B7C9BB;
+    margin:0 0 2px;
+  }
+  .week-select{
+    background:rgba(255,255,255,0.12);
+    color:var(--chalk);
+    border:1px solid rgba(255,255,255,0.25);
+    border-radius:7px;
+    padding:5px 8px;
+    font-size:12.5px;
+    font-weight:700;
+    font-family:inherit;
+  }
+  .week-select option{color:var(--ink);}
+  .pool-title{
+    font-size:26px;
+    font-weight:800;
+    letter-spacing:-0.5px;
+    margin:0;
+  }
+  .pool-sub{
+    font-size:13.5px;
+    color:#CBD8CD;
+    margin:6px 0 0;
+  }
+  .pool-body{
+    max-width:520px;
+    margin:0 auto;
+    padding:18px 16px 0;
+  }
+  .tabbar{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    background:var(--line);
+    padding:4px;
+    border-radius:10px;
+  }
+  .tabbar button{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:9px 4px;
+    font-size:14px;
+    font-weight:700;
+    color:var(--ink-soft);
+    border-radius:7px;
+    cursor:pointer;
+  }
+  .tabbar button.active{
+    background:var(--turf);
+    color:var(--chalk);
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .name-field{
+    width:100%;
+    padding:11px 12px;
+    font-size:16px;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    margin-top:8px;
+    font-family:inherit;
+  }
+  label.field-label{
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink-soft);
+  }
+  .game-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px 14px;
+    margin-bottom:10px;
+  }
+  .game-meta{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:8px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+  }
+  .matchup{
+    display:flex;
+    gap:8px;
+  }
+  .team-btn{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    padding:10px 6px;
+    border:1.5px solid var(--line);
+    background:var(--chalk);
+    border-radius:9px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .team-btn.picked{
+    border-color:var(--leather);
+    background:#FBEFE6;
+  }
+  .team-abbr{
+    font-size:16px;
+    font-weight:800;
+    color:var(--ink);
+  }
+  .team-name{
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .at-sep{
+    align-self:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    font-weight:700;
+    padding:0 2px;
+  }
+  .primary-btn{
+    width:100%;
+    background:var(--leather);
+    color:#fff;
+    border:none;
+    padding:13px;
+    font-size:15.5px;
+    font-weight:800;
+    border-radius:9px;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .primary-btn:disabled{
+    background:#C9BCAF;
+    cursor:not-allowed;
+  }
+  .progress-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:8px 0 0;
+  }
+  .confirm-box{
+    text-align:center;
+    padding:26px 10px;
+  }
+  .confirm-box .big{
+    font-size:34px;
+  }
+  .confirm-box h3{
+    margin:8px 0 4px;
+  }
+  .confirm-box p{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin:0;
+  }
+  .link-btn{
+    background:none;
+    border:none;
+    color:var(--leather);
+    font-weight:700;
+    font-size:14px;
+    text-decoration:underline;
+    cursor:pointer;
+    margin-top:14px;
+  }
+  .player-card{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 12px 10px;
+    margin-bottom:10px;
+  }
+  .player-card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .pick-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:6px;
+  }
+  .pick-chip{
+    text-align:center;
+    font-size:11.5px;
+    font-weight:700;
+    padding:6px 2px;
+    border-radius:6px;
+    background:var(--chalk);
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .pick-chip.correct{
+    background:#E4F0E6;
+    border-color:#9DC3A4;
+    color:var(--turf);
+  }
+  .pick-chip.wrong{
+    background:#F7E9E4;
+    border-color:#E0B8A8;
+    color:#9C4A2E;
+    text-decoration:line-through;
+    text-decoration-thickness:1.5px;
+  }
+  .player-name{font-weight:700;font-size:14.5px;}
+  .player-score{
+    font-weight:800;
+    font-size:14px;
+    color:var(--turf);
+  }
+  .player-score.pending{color:var(--ink-soft);font-weight:600;font-size:12px;}
+  .empty-note{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    text-align:center;
+    padding:20px 10px;
+  }
+  .result-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .result-row:last-child{border-bottom:none;}
+  .result-game{flex:1;color:var(--ink-soft);}
+  .result-select{
+    display:flex;
+    gap:4px;
+  }
+  .result-select button{
+    padding:5px 9px;
+    font-size:12px;
+    font-weight:700;
+    border-radius:6px;
+    border:1.5px solid var(--line);
+    background:var(--chalk);
+    cursor:pointer;
+  }
+  .result-select button.picked{
+    background:var(--turf);
+    color:#fff;
+    border-color:var(--turf);
+  }
+  .section-title{
+    font-size:14px;
+    font-weight:800;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  .loading{
+    text-align:center;
+    color:var(--ink-soft);
+    padding:30px;
+    font-size:13.5px;
+  }
+  .err-banner{
+    border-color:#E0B8A8;
+    background:#FBEFEC;
+  }
+  .err-banner p{
+    margin:0;
+    color:#9C4A2E;
+    font-size:13.5px;
+    font-weight:600;
+  }
+</style>
+<div class="pool-app" id="poolApp">
+  <div class="pool-header">
+    <div class="pool-eyebrow-row">
+      <p class="pool-eyebrow">2026 Season</p>
+      <select class="week-select" id="weekSelect" onchange="onWeekChange(this.value)"></select>
+    </div>
+    <h1 class="pool-title">Pick 'Em Pool</h1>
+    <p class="pool-sub">Pick the winner of every game. Most correct wins the week.</p>
+  </div>
+  <div class="pool-body">
+    <div id="setupBanner"></div>
+    <div class="tabbar">
+      <button id="tabPicksBtn" class="active" onclick="showTab('picks')">My Picks</button>
+      <button id="tabBoardBtn" onclick="showTab('board')">Leaderboard</button>
+      <button id="tabResultsBtn" onclick="showTab('results')">Set Results</button>
+    </div>
+    <div id="tabPicks"></div>
+    <div id="tabBoard" style="display:none;"></div>
+    <div id="tabResults" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ====== PASTE YOUR FIREBASE CONFIG BELOW (Firebase Console > Project Settings > Your apps) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyA9eVXyI12aic0F-9Ma6Z6Masd6oiQqC6I",
+  authDomain: "pickemfball-96b6b.firebaseapp.com",
+  projectId: "pickemfball-96b6b",
+  storageBucket: "pickemfball-96b6b.firebasestorage.app",
+  messagingSenderId: "1079362732079",
+  appId: "1:1079362732079:web:bfafe1ff56a7bb9b44c6da"
+};
+// ===================================================================================================
+
+let db = null;
+let firebaseReady = false;
+try{
+  if(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")){
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    firebaseReady = true;
+  }
+}catch(e){
+  firebaseReady = false;
+}
+
+function requireFirebase(){
+  if(!firebaseReady){
+    throw new Error("Firebase isn't configured yet — paste your firebaseConfig into the HTML file.");
+  }
+}
+
+// picks and results are shared collections across ALL weeks; each doc is tagged with a weekId
+async function fsSavePicks(weekId, name, record){
+  requireFirebase();
+  await db.collection("picks").doc(`${weekId}_${name.toLowerCase()}`).set({...record, weekId, name});
+}
+async function fsGetAllPicks(weekId){
+  requireFirebase();
+  const snap = await db.collection("picks").where("weekId","==",weekId).get();
+  const out = [];
+  snap.forEach(doc => out.push(doc.data()));
+  return out;
+}
+async function fsGetResults(weekId){
+  requireFirebase();
+  const doc = await db.collection("results").doc(weekId).get();
+  return doc.exists ? doc.data() : {};
+}
+async function fsSaveResults(weekId, results){
+  requireFirebase();
+  await db.collection("results").doc(weekId).set(results);
+}
+
+// ====== WEEKLY SCHEDULE DATA ======
+// Add a new entry here each week: copy the week2_2026 block, update the id, label, deadline and games.
+// deadline = kickoff of the week's FIRST game (ISO 8601 with correct ET offset: -04:00 EDT / -05:00 EST).
+// The tiebreaker always uses the LAST game listed in that week's array.
+const WEEKS = {
+  week2_2026: {
+    label: "Week 2",
+    deadline: "2026-09-17T20:15:00-04:00", // Thu Sep 17, 8:15 PM ET kickoff
+    games: [
+      {id:"g1", away:"Lions", awayAbbr:"DET", home:"Bills", homeAbbr:"BUF", meta:"Thu Sep 17 · 8:15 PM"},
+      {id:"g2", away:"Panthers", awayAbbr:"CAR", home:"Falcons", homeAbbr:"ATL", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g3", away:"Saints", awayAbbr:"NO", home:"Ravens", homeAbbr:"BAL", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g4", away:"Vikings", awayAbbr:"MIN", home:"Bears", homeAbbr:"CHI", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g5", away:"Bengals", awayAbbr:"CIN", home:"Texans", homeAbbr:"HOU", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g6", away:"Steelers", awayAbbr:"PIT", home:"Patriots", homeAbbr:"NE", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g7", away:"Packers", awayAbbr:"GB", home:"Jets", homeAbbr:"NYJ", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g8", away:"Browns", awayAbbr:"CLE", home:"Buccaneers", homeAbbr:"TB", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g9", away:"Eagles", awayAbbr:"PHI", home:"Titans", homeAbbr:"TEN", meta:"Sun Sep 20 · 1:00 PM"},
+      {id:"g10", away:"Jaguars", awayAbbr:"JAX", home:"Broncos", homeAbbr:"DEN", meta:"Sun Sep 20 · 4:05 PM"},
+      {id:"g11", away:"Raiders", awayAbbr:"LV", home:"Chargers", homeAbbr:"LAC", meta:"Sun Sep 20 · 4:05 PM"},
+      {id:"g12", away:"Seahawks", awayAbbr:"SEA", home:"Cardinals", homeAbbr:"AZ", meta:"Sun Sep 20 · 4:25 PM"},
+      {id:"g13", away:"Commanders", awayAbbr:"WAS", home:"Cowboys", homeAbbr:"DAL", meta:"Sun Sep 20 · 4:25 PM"},
+      {id:"g14", away:"Dolphins", awayAbbr:"MIA", home:"49ers", homeAbbr:"SF", meta:"Sun Sep 20 · 4:25 PM"},
+      {id:"g15", away:"Colts", awayAbbr:"IND", home:"Chiefs", homeAbbr:"KC", meta:"Sun Sep 20 · 8:20 PM"},
+      {id:"g16", away:"Giants", awayAbbr:"NYG", home:"Rams", homeAbbr:"LAR", meta:"Mon Sep 21 · 8:15 PM"}
+    ]
+  }
+  // week3_2026: { label: "Week 3", deadline: "...", games: [...] },
+};
+
+let currentWeek = Object.keys(WEEKS)[0];
+let myName = "";
+let myPicks = {};
+let myTiebreaker = null;
+let submitted = false;
+
+function games(){ return WEEKS[currentWeek].games; }
+function finalGame(){ const g = games(); return g[g.length-1]; }
+function isPastDeadline(){ return new Date() >= new Date(WEEKS[currentWeek].deadline); }
+function deadlineLabel(){
+  const d = new Date(WEEKS[currentWeek].deadline);
+  return d.toLocaleString('en-US', {weekday:'long', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'});
+}
+
+function populateWeekSelect(){
+  const sel = document.getElementById('weekSelect');
+  sel.innerHTML = Object.keys(WEEKS).map(k => `<option value="${k}" ${k===currentWeek?'selected':''}>${WEEKS[k].label}</option>`).join('');
+}
+
+function onWeekChange(weekId){
+  currentWeek = weekId;
+  myPicks = {};
+  myTiebreaker = null;
+  submitted = false;
+  showTab('picks');
+}
+
+function showTab(tab){
+  document.getElementById('tabPicks').style.display = tab==='picks' ? 'block':'none';
+  document.getElementById('tabBoard').style.display = tab==='board' ? 'block':'none';
+  document.getElementById('tabResults').style.display = tab==='results' ? 'block':'none';
+  document.getElementById('tabPicksBtn').className = tab==='picks' ? 'active':'';
+  document.getElementById('tabBoardBtn').className = tab==='board' ? 'active':'';
+  document.getElementById('tabResultsBtn').className = tab==='results' ? 'active':'';
+  if(tab==='picks') renderPicksForm();
+  if(tab==='board') renderBoard();
+  if(tab==='results') renderResults();
+}
+
+function renderPicksForm(){
+  const el = document.getElementById('tabPicks');
+
+  if(isPastDeadline()){
+    el.innerHTML = `<div class="card confirm-box">
+      <div class="big">🔒</div>
+      <h3>Picks are closed</h3>
+      <p>The deadline (${deadlineLabel()}) has passed, so picks can no longer be submitted or changed for ${WEEKS[currentWeek].label}.</p>
+    </div>`;
+    return;
+  }
+
+  const pickedCount = Object.keys(myPicks).length;
+  const fg = finalGame();
+  let html = `<div class="card">
+    <label class="field-label">Your name</label><br/>
+    <input class="name-field" id="nameInput" placeholder="e.g. Jordan" value="${myName.replace(/"/g,'')}" oninput="onNameInput(this.value)"/>
+    <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Picks lock at ${deadlineLabel()} — no one can see your picks before then, including other players.</p>
+  </div>`;
+  games().forEach(g=>{
+    const pick = myPicks[g.id];
+    html += `<div class="game-card">
+      <div class="game-meta">${g.meta}</div>
+      <div class="matchup">
+        <button class="team-btn ${pick==='away'?'picked':''}" onclick="pickTeam('${g.id}','away')">
+          <span class="team-abbr">${g.awayAbbr}</span>
+          <span class="team-name">${g.away}</span>
+        </button>
+        <span class="at-sep">@</span>
+        <button class="team-btn ${pick==='home'?'picked':''}" onclick="pickTeam('${g.id}','home')">
+          <span class="team-abbr">${g.homeAbbr}</span>
+          <span class="team-name">${g.home}</span>
+        </button>
+      </div>
+    </div>`;
+  });
+  html += `<div class="card">
+    <label class="field-label">Tiebreaker</label>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 8px;">Guess the <strong>total combined points</strong> scored in the final game of the week (${fg.away} @ ${fg.home}). Closest guess wins ties.</p>
+    <input class="name-field" id="tbInput" type="number" min="0" step="1" placeholder="e.g. 45" value="${myTiebreaker===null?'':myTiebreaker}" oninput="onTiebreakerInput(this.value)"/>
+  </div>`;
+  html += `<button class="primary-btn" id="submitBtn" onclick="submitPicks()" ${(!myName.trim()||pickedCount<games().length||myTiebreaker===null||myTiebreaker==='')?'disabled':''}>Submit Picks</button>
+  <p class="progress-note">${pickedCount} of ${games().length} games picked${!myName.trim()?' · enter your name above':''}${(myTiebreaker===null||myTiebreaker==='')?' · tiebreaker guess needed':''}</p>`;
+  el.innerHTML = html;
+}
+
+function onNameInput(v){
+  myName = v;
+  const btn = document.getElementById('submitBtn');
+  if(btn) btn.disabled = !myName.trim() || Object.keys(myPicks).length < games().length || myTiebreaker===null || myTiebreaker==='';
+}
+
+function onTiebreakerInput(v){
+  myTiebreaker = v === '' ? '' : Number(v);
+  const btn = document.getElementById('submitBtn');
+  if(btn) btn.disabled = !myName.trim() || Object.keys(myPicks).length < games().length || myTiebreaker===null || myTiebreaker==='';
+}
+
+function pickTeam(gameId, side){
+  myPicks[gameId] = side;
+  renderPicksForm();
+}
+
+async function submitPicks(){
+  const name = myName.trim();
+  if(!name) return;
+  if(isPastDeadline()){
+    renderPicksForm();
+    return;
+  }
+  if(myTiebreaker===null || myTiebreaker==='') return;
+  const record = {picks: myPicks, tiebreaker: Number(myTiebreaker), submittedAt: new Date().toISOString()};
+  const btn = document.getElementById('submitBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  try{
+    await fsSavePicks(currentWeek, name, record);
+    submitted = true;
+    renderConfirm(name);
+  }catch(e){
+    renderPicksForm();
+    const el = document.getElementById('tabPicks');
+    el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't save your picks. ${escapeHtml(String(e && e.message ? e.message : e))} — try again in a moment.</p></div>`);
+  }
+}
+
+function renderConfirm(name){
+  const el = document.getElementById('tabPicks');
+  el.innerHTML = `<div class="card confirm-box">
+    <div class="big">🏈</div>
+    <h3>Picks locked in, ${name}</h3>
+    <p>Your picks are saved, tiebreaker guess: <strong>${myTiebreaker}</strong> points. You can still change them until kickoff.</p>
+    <button class="link-btn" onclick="editPicks()">Edit my picks</button>
+  </div>`;
+}
+
+function editPicks(){
+  renderPicksForm();
+}
+
+async function renderBoard(){
+  const el = document.getElementById('tabBoard');
+
+  if(!isPastDeadline()){
+    el.innerHTML = `<div class="card confirm-box">
+      <div class="big">🔒</div>
+      <h3>Leaderboard locked</h3>
+      <p>Picks stay hidden until the first kickoff, ${deadlineLabel()}. Check back after games start.</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="loading">Loading picks…</div>`;
+  let players = [];
+  try{
+    players = await fsGetAllPicks(currentWeek);
+  }catch(e){
+    el.innerHTML = `<div class="card"><p class="empty-note">Couldn't load picks: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`;
+    return;
+  }
+
+  let results = {};
+  try{
+    results = await fsGetResults(currentWeek);
+  }catch(e){}
+
+  if(players.length === 0){
+    el.innerHTML = `<div class="card"><p class="empty-note">No one has submitted picks yet for ${WEEKS[currentWeek].label}. Be the first — head to "My Picks".</p></div>`;
+    return;
+  }
+
+  const GAMES = games();
+  const hasResults = Object.keys(results).filter(k=>k!=='tiebreakerActual').length > 0;
+  const tbActual = results.tiebreakerActual;
+  const rows = players.map(p=>{
+    let correct = 0;
+    GAMES.forEach(g=>{
+      if(results[g.id] && p.picks[g.id] === results[g.id]) correct++;
+    });
+    const tbDiff = (tbActual !== undefined && p.tiebreaker !== undefined) ? Math.abs(p.tiebreaker - tbActual) : null;
+    return {name: p.name, picks: p.picks, tiebreaker: p.tiebreaker, correct, tbDiff};
+  }).sort((a,b)=>{
+    if(b.correct !== a.correct) return b.correct - a.correct;
+    if(a.tbDiff !== null && b.tbDiff !== null) return a.tbDiff - b.tbDiff;
+    return 0;
+  });
+  const validDiffs = rows.map(r=>r.tbDiff).filter(d=>d!==null);
+  const closestDiff = validDiffs.length ? Math.min(...validDiffs) : null;
+
+  let html = `<div class="card">
+    <p class="section-title">${players.length} player${players.length===1?'':'s'} submitted · ${WEEKS[currentWeek].label}</p>
+    <div class="pick-grid" style="margin-bottom:10px;">`;
+  GAMES.forEach(g=>{
+    html += `<div class="pick-chip" style="background:transparent;border-style:dashed;color:var(--ink-soft);font-weight:600;">${g.awayAbbr}@${g.homeAbbr}</div>`;
+  });
+  html += `</div>`;
+  rows.forEach(r=>{
+    const isClosest = closestDiff !== null && r.tbDiff === closestDiff;
+    html += `<div class="player-card">
+      <div class="player-card-head">
+        <span class="player-name">${escapeHtml(r.name)}</span>
+        <span class="player-score ${hasResults?'':'pending'}">${hasResults ? r.correct+' / '+GAMES.length+' correct' : 'picks submitted'}</span>
+      </div>
+      <div class="pick-grid">`;
+    GAMES.forEach(g=>{
+      const pick = r.picks[g.id];
+      const pickAbbr = pick === 'home' ? g.homeAbbr : (pick === 'away' ? g.awayAbbr : '—');
+      const winner = results[g.id];
+      let cls = '';
+      if(winner){
+        cls = (pick === winner) ? 'correct' : 'wrong';
+      }
+      html += `<div class="pick-chip ${cls}">${pickAbbr}</div>`;
+    });
+    html += `</div>
+      <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Tiebreaker guess: <strong style="color:${isClosest?'var(--turf)':'var(--ink)'};">${r.tiebreaker ?? '—'}</strong>${isClosest?' 🎯 closest so far':''}</p>
+    </div>`;
+  });
+  if(!hasResults){
+    html += `<p class="progress-note">Correct/wrong highlighting and tiebreaker ranking show once results are entered in "Set Results".</p>`;
+  } else if(tbActual === undefined){
+    html += `<p class="progress-note">Enter the final game's actual total in "Set Results" to see who's closest on the tiebreaker.</p>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+async function renderResults(){
+  const el = document.getElementById('tabResults');
+  el.innerHTML = `<div class="loading">Loading…</div>`;
+  let results = {};
+  try{
+    results = await fsGetResults(currentWeek);
+  }catch(e){}
+
+  const fg = finalGame();
+  let html = `<div class="card">
+    <p class="section-title">Mark the actual winners · ${WEEKS[currentWeek].label}</p>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:-6px;">Anyone in the group can fill these in as games finish. This updates the leaderboard for everyone.</p>`;
+  games().forEach(g=>{
+    const winner = results[g.id];
+    html += `<div class="result-row">
+      <span class="result-game">${g.awayAbbr} @ ${g.homeAbbr}</span>
+      <span class="result-select">
+        <button class="${winner==='away'?'picked':''}" onclick="setResult('${g.id}','away')">${g.awayAbbr}</button>
+        <button class="${winner==='home'?'picked':''}" onclick="setResult('${g.id}','home')">${g.homeAbbr}</button>
+      </span>
+    </div>`;
+  });
+  html += `</div>
+  <div class="card">
+    <p class="section-title">Tiebreaker actual total</p>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:-6px;">Once the ${fg.away} @ ${fg.home} final is over, enter the actual combined final score.</p>
+    <input class="name-field" id="tbActualInput" type="number" min="0" step="1" placeholder="e.g. 47" value="${results.tiebreakerActual !== undefined ? results.tiebreakerActual : ''}" onchange="setTiebreakerActual(this.value)"/>
+  </div>`;
+  el.innerHTML = html;
+}
+
+async function setTiebreakerActual(v){
+  if(v === '') return;
+  let results = {};
+  try{ results = await fsGetResults(currentWeek); }catch(e){}
+  results.tiebreakerActual = Number(v);
+  try{
+    await fsSaveResults(currentWeek, results);
+  }catch(e){
+    const el = document.getElementById('tabResults');
+    el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't save that value: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`);
+  }
+}
+
+async function setResult(gameId, side){
+  let results = {};
+  try{ results = await fsGetResults(currentWeek); }catch(e){}
+  results[gameId] = side;
+  try{
+    await fsSaveResults(currentWeek, results);
+  }catch(e){
+    renderResults();
+    const el = document.getElementById('tabResults');
+    el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't save that result: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`);
+    return;
+  }
+  renderResults();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+populateWeekSelect();
+renderPicksForm();
+if(!firebaseReady){
+  document.getElementById('setupBanner').innerHTML = `<div class="card err-banner">
+    <p>⚠️ Firebase isn't configured yet. Open this HTML file in a text editor and paste your firebaseConfig values near the top (look for "PASTE YOUR FIREBASE CONFIG BELOW"). Picks won't save until that's done.</p>
+  </div>`;
+}
+</script>
