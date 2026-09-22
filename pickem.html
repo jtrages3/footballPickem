@@ -417,8 +417,30 @@ const WEEKS = {
       {id:"g15", away:"Colts", awayAbbr:"IND", home:"Chiefs", homeAbbr:"KC", meta:"Sun Sep 20 · 8:20 PM"},
       {id:"g16", away:"Giants", awayAbbr:"NYG", home:"Rams", homeAbbr:"LAR", meta:"Mon Sep 21 · 8:15 PM"}
     ]
+  },
+  week3_2026: {
+    label: "Week 3",
+    deadline: "2026-09-24T20:15:00-04:00", // Thu Sep 24, 8:15 PM ET kickoff
+    games: [
+      {id:"g1", away:"Falcons", awayAbbr:"ATL", home:"Packers", homeAbbr:"GB", meta:"Thu Sep 24 · 8:15 PM"},
+      {id:"g2", away:"Chargers", awayAbbr:"LAC", home:"Bills", homeAbbr:"BUF", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g3", away:"Panthers", awayAbbr:"CAR", home:"Browns", homeAbbr:"CLE", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g4", away:"Jets", awayAbbr:"NYJ", home:"Lions", homeAbbr:"DET", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g5", away:"Texans", awayAbbr:"HOU", home:"Colts", homeAbbr:"IND", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g6", away:"Patriots", awayAbbr:"NE", home:"Jaguars", homeAbbr:"JAX", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g7", away:"Chiefs", awayAbbr:"KC", home:"Dolphins", homeAbbr:"MIA", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g8", away:"Titans", awayAbbr:"TEN", home:"Giants", homeAbbr:"NYG", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g9", away:"Bengals", awayAbbr:"CIN", home:"Steelers", homeAbbr:"PIT", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g10", away:"Vikings", awayAbbr:"MIN", home:"Buccaneers", homeAbbr:"TB", meta:"Sun Sep 27 · 1:00 PM"},
+      {id:"g11", away:"Seahawks", awayAbbr:"SEA", home:"Commanders", homeAbbr:"WAS", meta:"Sun Sep 27 · 4:05 PM"},
+      {id:"g12", away:"Raiders", awayAbbr:"LV", home:"Saints", homeAbbr:"NO", meta:"Sun Sep 27 · 4:05 PM"},
+      {id:"g13", away:"Cardinals", awayAbbr:"AZ", home:"49ers", homeAbbr:"SF", meta:"Sun Sep 27 · 4:25 PM"},
+      {id:"g14", away:"Ravens", awayAbbr:"BAL", home:"Cowboys", homeAbbr:"DAL", meta:"Sun Sep 27 · 4:25 PM · Rio de Janeiro"},
+      {id:"g15", away:"Rams", awayAbbr:"LAR", home:"Broncos", homeAbbr:"DEN", meta:"Sun Sep 27 · 8:20 PM"},
+      {id:"g16", away:"Eagles", awayAbbr:"PHI", home:"Bears", homeAbbr:"CHI", meta:"Mon Sep 28 · 8:15 PM"}
+    ]
   }
-  // week3_2026: { label: "Week 3", deadline: "...", games: [...] },
+  // week4_2026: { label: "Week 4", deadline: "...", games: [...] },
 };
 
 let currentWeek = Object.keys(WEEKS)[0];
@@ -633,7 +655,30 @@ async function renderBoard(){
   const validDiffs = rows.map(r=>r.tbDiff).filter(d=>d!==null);
   const closestDiff = validDiffs.length ? Math.min(...validDiffs) : null;
 
-  let html = `<div class="card">
+  const isWeekComplete = GAMES.every(g => !!results[g.id]) && tbActual !== undefined;
+  let winners = [];
+  if(isWeekComplete && rows.length){
+    const maxCorrect = rows[0].correct;
+    const topRows = rows.filter(r => r.correct === maxCorrect);
+    if(topRows.length === 1){
+      winners = topRows;
+    } else {
+      const minDiff = Math.min(...topRows.map(r => r.tbDiff));
+      winners = topRows.filter(r => r.tbDiff === minDiff);
+    }
+  }
+
+  let html = '';
+  if(isWeekComplete && winners.length){
+    const names = winners.map(w => escapeHtml(w.name)).join(winners.length===2 ? ' & ' : ', ');
+    html += `<div class="card" style="background:linear-gradient(135deg,#FBEFE6,#F3EFE3);border-color:var(--leather);text-align:center;padding:20px 16px;">
+      <div style="font-size:32px;">🏆</div>
+      <p style="margin:6px 0 2px;font-size:16px;font-weight:800;color:var(--leather-dark);">${WEEKS[currentWeek].label} Champion${winners.length>1?'s':''}: ${names}</p>
+      <p style="margin:0;font-size:12.5px;color:var(--ink-soft);">${winners[0].correct} / ${GAMES.length} correct${winners[0].tbDiff!==null ? ' · tiebreaker off by '+winners[0].tbDiff+' pt'+(winners[0].tbDiff===1?'':'s') : ''}</p>
+    </div>`;
+  }
+
+  html += `<div class="card">
     <p class="section-title">${players.length} player${players.length===1?'':'s'} submitted · ${WEEKS[currentWeek].label}</p>
     <div class="pick-grid" style="margin-bottom:10px;">`;
   GAMES.forEach(g=>{
@@ -669,6 +714,59 @@ async function renderBoard(){
   }
   html += `</div>`;
   el.innerHTML = html;
+  renderChampionsSection(el);
+}
+
+async function computeWeekWinners(weekId){
+  const weekGames = WEEKS[weekId].games;
+  let players, results;
+  try{
+    players = await fsGetAllPicks(weekId);
+    results = await fsGetResults(weekId);
+  }catch(e){
+    return null;
+  }
+  if(!players.length) return null;
+  const tbActual = results.tiebreakerActual;
+  const complete = weekGames.every(g => !!results[g.id]) && tbActual !== undefined;
+  if(!complete) return null;
+  const rows = players.map(p=>{
+    let correct = 0;
+    weekGames.forEach(g=>{ if(results[g.id] && p.picks[g.id] === results[g.id]) correct++; });
+    const tbDiff = (p.tiebreaker !== undefined) ? Math.abs(p.tiebreaker - tbActual) : null;
+    return {name: p.name, correct, tbDiff};
+  }).sort((a,b)=> b.correct - a.correct);
+  const maxCorrect = rows[0].correct;
+  const topRows = rows.filter(r => r.correct === maxCorrect);
+  let winners = topRows;
+  if(topRows.length > 1){
+    const validTb = topRows.filter(r=>r.tbDiff !== null);
+    if(validTb.length){
+      const minDiff = Math.min(...validTb.map(r=>r.tbDiff));
+      winners = topRows.filter(r => r.tbDiff === minDiff);
+    }
+  }
+  return {names: winners.map(w=>w.name), correct: maxCorrect, total: weekGames.length};
+}
+
+async function renderChampionsSection(el){
+  const weekIds = Object.keys(WEEKS);
+  if(weekIds.length < 2) return; // not worth showing with only one week loaded
+  const container = document.createElement('div');
+  container.className = 'card';
+  container.innerHTML = `<p class="section-title">🏆 Weekly Champions</p><div id="championsList" style="font-size:13px;color:var(--ink-soft);">Loading…</div>`;
+  el.appendChild(container);
+  const lines = [];
+  for(const wid of weekIds){
+    const result = await computeWeekWinners(wid);
+    if(result){
+      lines.push(`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);"><span style="color:var(--ink);font-weight:600;">${WEEKS[wid].label}</span><span>${result.names.map(escapeHtml).join(', ')} (${result.correct}/${result.total})</span></div>`);
+    }
+  }
+  const listEl = document.getElementById('championsList');
+  if(listEl){
+    listEl.innerHTML = lines.length ? lines.join('') : 'No completed weeks yet.';
+  }
 }
 
 async function renderResults(){
