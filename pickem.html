@@ -309,6 +309,59 @@
     font-size:13.5px;
     font-weight:600;
   }
+
+  /* ---- Trophy banner celebration ---- */
+  .trophy-card{
+    position:relative;
+    overflow:hidden;
+    animation:trophyPopIn 0.6s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .trophy-emoji{
+    display:inline-block;
+    animation:trophyBounce 1.6s ease-in-out 0.6s infinite;
+  }
+  @keyframes trophyPopIn{
+    0%{ transform:scale(0.6); opacity:0; }
+    60%{ transform:scale(1.06); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  @keyframes trophyBounce{
+    0%, 100%{ transform:translateY(0) rotate(0deg); }
+    20%{ transform:translateY(-6px) rotate(-6deg); }
+    40%{ transform:translateY(0) rotate(4deg); }
+    60%{ transform:translateY(-3px) rotate(-2deg); }
+  }
+  .confetti-layer{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    pointer-events:none;
+    z-index:0;
+  }
+  .confetti-piece{
+    position:absolute;
+    top:-12px;
+    width:8px;
+    height:14px;
+    opacity:0.9;
+    animation-name:confettiFall;
+    animation-timing-function:cubic-bezier(.4,.1,.6,.9);
+    animation-fill-mode:forwards;
+  }
+  @keyframes confettiFall{
+    0%{ transform:translateY(0) rotate(0deg); opacity:1; }
+    85%{ opacity:1; }
+    100%{ transform:translateY(220px) rotate(540deg); opacity:0; }
+  }
+  .trophy-card > *:not(.confetti-layer){
+    position:relative;
+    z-index:1;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .trophy-card, .trophy-emoji, .confetti-piece{
+      animation:none !important;
+    }
+  }
 </style>
 <div class="pool-app" id="poolApp">
   <div class="pool-header">
@@ -691,13 +744,16 @@ async function renderBoard(){
   }
 
   let html = '';
+  let showTrophyConfetti = false;
   if(isWeekComplete && winners.length){
     const names = winners.map(w => escapeHtml(w.name)).join(winners.length===2 ? ' & ' : ', ');
-    html += `<div class="card" style="background:linear-gradient(135deg,#FBEFE6,#F3EFE3);border-color:var(--leather);text-align:center;padding:20px 16px;">
-      <div style="font-size:32px;">🏆</div>
+    html += `<div class="card trophy-card" style="background:linear-gradient(135deg,#FBEFE6,#F3EFE3);border-color:var(--leather);text-align:center;padding:20px 16px;">
+      <div class="confetti-layer" id="confettiLayer"></div>
+      <div style="font-size:32px;"><span class="trophy-emoji">🏆</span></div>
       <p style="margin:6px 0 2px;font-size:16px;font-weight:800;color:var(--leather-dark);">${WEEKS[currentWeek].label} Champion${winners.length>1?'s':''}: ${names}</p>
       <p style="margin:0;font-size:12.5px;color:var(--ink-soft);">${winners[0].correct} / ${GAMES.length} correct${winners[0].tbDiff!==null ? ' · tiebreaker off by '+winners[0].tbDiff+' pt'+(winners[0].tbDiff===1?'':'s') : ''}</p>
     </div>`;
+    showTrophyConfetti = true;
   }
 
   html += `<div class="card">
@@ -736,6 +792,9 @@ async function renderBoard(){
   }
   html += `</div>`;
   el.innerHTML = html;
+  if(showTrophyConfetti){
+    launchConfetti(document.getElementById('confettiLayer'));
+  }
   renderChampionsSection(el);
 }
 
@@ -852,6 +911,37 @@ async function setResult(gameId, side){
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Lightweight, dependency-free confetti burst for the trophy banner.
+// Purely decorative: if the container is missing or something goes
+// wrong here, it's wrapped in try/catch so it can never break the app.
+function launchConfetti(container){
+  try{
+    if(!container) return;
+    const colors = ['#2E7D32','#F4A100','#C0392B','#F5E9DA','#8C5A3C','#1F5C33'];
+    const pieceCount = 36;
+    for(let i=0; i<pieceCount; i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const left = Math.random()*100;
+      const delay = Math.random()*0.35;
+      const duration = 1.1 + Math.random()*0.9;
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      const rounded = Math.random() > 0.5;
+      piece.style.left = left + '%';
+      piece.style.background = color;
+      piece.style.animationDelay = delay + 's';
+      piece.style.animationDuration = duration + 's';
+      if(rounded) piece.style.borderRadius = '50%';
+      container.appendChild(piece);
+    }
+    // Clean up after the longest possible animation finishes so the
+    // DOM doesn't quietly accumulate old confetti nodes.
+    setTimeout(() => { if(container) container.innerHTML = ''; }, 2400);
+  }catch(e){
+    // Confetti is cosmetic only — never let it surface an error to the player.
+  }
 }
 
 populateWeekSelect();
