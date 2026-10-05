@@ -247,6 +247,23 @@
     text-decoration-thickness:1.5px;
   }
   .player-name{font-weight:700;font-size:14.5px;}
+  .paid-tag{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    padding:1px 7px;
+    border-radius:20px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
+  .paid-tag.paid{
+    color:var(--turf);
+    background:rgba(46,125,50,0.12);
+  }
+  .paid-tag.unpaid{
+    color:#9C4A2E;
+    background:rgba(192,57,43,0.1);
+  }
   .player-score{
     font-weight:800;
     font-size:14px;
@@ -420,7 +437,13 @@ function requireFirebase(){
 // picks and results are shared collections across ALL weeks; each doc is tagged with a weekId
 async function fsSavePicks(weekId, name, record){
   requireFirebase();
-  await db.collection("picks").doc(`${weekId}_${name.toLowerCase()}`).set({...record, weekId, name});
+  // merge:true so resubmitting picks (editing before the deadline) never
+  // wipes out other fields already stored on this doc, like paid status.
+  await db.collection("picks").doc(`${weekId}_${name.toLowerCase()}`).set({...record, weekId, name}, {merge:true});
+}
+async function fsSetPaid(weekId, name, paid){
+  requireFirebase();
+  await db.collection("picks").doc(`${weekId}_${name.toLowerCase()}`).set({ paid, weekId, name }, {merge:true});
 }
 async function fsGetAllPicks(weekId){
   requireFirebase();
@@ -514,11 +537,48 @@ const WEEKS = {
       {id:"g15", away:"Lions", awayAbbr:"DET", home:"Panthers", homeAbbr:"CAR", meta:"Sun Oct 4 · 8:20 PM"},
       {id:"g16", away:"Falcons", awayAbbr:"ATL", home:"Saints", homeAbbr:"NO", meta:"Mon Oct 5 · 8:15 PM"}
     ]
+  },
+  week5_2026: {
+    label: "Week 5",
+    deadline: "2026-10-08T20:15:00-04:00", // Thu Oct 8, 8:15 PM ET kickoff (Buccaneers @ Cowboys)
+    games: [
+      {id:"g1", away:"Buccaneers", awayAbbr:"TB", home:"Cowboys", homeAbbr:"DAL", meta:"Thu Oct 8 · 8:15 PM"},
+      {id:"g2", away:"Eagles", awayAbbr:"PHI", home:"Jaguars", homeAbbr:"JAX", meta:"Sun Oct 11 · 9:30 AM · London"},
+      {id:"g3", away:"Bengals", awayAbbr:"CIN", home:"Dolphins", homeAbbr:"MIA", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g4", away:"Bears", awayAbbr:"CHI", home:"Packers", homeAbbr:"GB", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g5", away:"Browns", awayAbbr:"CLE", home:"Jets", homeAbbr:"NYJ", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g6", away:"Texans", awayAbbr:"HOU", home:"Titans", homeAbbr:"TEN", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g7", away:"Colts", awayAbbr:"IND", home:"Steelers", homeAbbr:"PIT", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g8", away:"Raiders", awayAbbr:"LV", home:"Patriots", homeAbbr:"NE", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g9", away:"Vikings", awayAbbr:"MIN", home:"Saints", homeAbbr:"NO", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g10", away:"Giants", awayAbbr:"NYG", home:"Commanders", homeAbbr:"WAS", meta:"Sun Oct 11 · 1:00 PM"},
+      {id:"g11", away:"Broncos", awayAbbr:"DEN", home:"Chargers", homeAbbr:"LAC", meta:"Sun Oct 11 · 4:05 PM"},
+      {id:"g12", away:"Lions", awayAbbr:"DET", home:"Cardinals", homeAbbr:"AZ", meta:"Sun Oct 11 · 4:25 PM"},
+      {id:"g13", away:"49ers", awayAbbr:"SF", home:"Seahawks", homeAbbr:"SEA", meta:"Sun Oct 11 · 4:25 PM"},
+      {id:"g14", away:"Ravens", awayAbbr:"BAL", home:"Falcons", homeAbbr:"ATL", meta:"Sun Oct 11 · 8:20 PM"},
+      {id:"g15", away:"Bills", awayAbbr:"BUF", home:"Rams", homeAbbr:"LAR", meta:"Mon Oct 12 · 8:15 PM"}
+    ]
   }
-  // week5_2026: { label: "Week 5", deadline: "...", games: [...] },
+  // week6_2026: { label: "Week 6", deadline: "...", games: [...] },
 };
 
-let currentWeek = Object.keys(WEEKS)[0];
+// Pick which week to open by default: the most recent week whose first game
+// has kicked off, rolling forward to the next published week once that week
+// is over (5 days after its Thursday kickoff = Tuesday evening, after Monday
+// night football). If no week has started yet, open the first one.
+// The week dropdown still lets anyone look back or ahead.
+function defaultWeekId(){
+  const ids = Object.keys(WEEKS);
+  const now = new Date();
+  const DAY = 24*60*60*1000;
+  let idx = -1;
+  ids.forEach((id, i) => { if(now >= new Date(WEEKS[id].deadline)) idx = i; });
+  if(idx === -1) return ids[0];
+  const weekOver = now >= new Date(new Date(WEEKS[ids[idx]].deadline).getTime() + 5*DAY);
+  if(weekOver && idx + 1 < ids.length) idx++;
+  return ids[idx];
+}
+let currentWeek = defaultWeekId();
 let myName = "";
 let myPicks = {};
 let myTiebreaker = null;
@@ -721,7 +781,7 @@ async function renderBoard(){
       if(results[g.id] && p.picks[g.id] === results[g.id]) correct++;
     });
     const tbDiff = (tbActual !== undefined && p.tiebreaker !== undefined) ? Math.abs(p.tiebreaker - tbActual) : null;
-    return {name: p.name, picks: p.picks, tiebreaker: p.tiebreaker, correct, tbDiff};
+    return {name: p.name, picks: p.picks, tiebreaker: p.tiebreaker, correct, tbDiff, paid: !!p.paid};
   }).sort((a,b)=>{
     if(b.correct !== a.correct) return b.correct - a.correct;
     if(a.tbDiff !== null && b.tbDiff !== null) return a.tbDiff - b.tbDiff;
@@ -767,7 +827,7 @@ async function renderBoard(){
     const isClosest = closestDiff !== null && r.tbDiff === closestDiff;
     html += `<div class="player-card">
       <div class="player-card-head">
-        <span class="player-name">${escapeHtml(r.name)}</span>
+        <span class="player-name">${escapeHtml(r.name)} <span class="paid-tag ${r.paid?'paid':'unpaid'}">${r.paid?'✅ Paid':'⏳ Not paid'}</span></span>
         <span class="player-score ${hasResults?'':'pending'}">${hasResults ? r.correct+' / '+GAMES.length+' correct' : 'picks submitted'}</span>
       </div>
       <div class="pick-grid">`;
@@ -857,6 +917,11 @@ async function renderResults(){
   try{
     results = await fsGetResults(currentWeek);
   }catch(e){}
+  let players = [];
+  try{
+    players = await fsGetAllPicks(currentWeek);
+  }catch(e){}
+  players.sort((a,b) => a.name.localeCompare(b.name));
 
   const fg = finalGame();
   let html = `<div class="card">
@@ -878,7 +943,36 @@ async function renderResults(){
     <p style="font-size:12.5px;color:var(--ink-soft);margin-top:-6px;">Once the ${fg.away} @ ${fg.home} final is over, enter the actual combined final score.</p>
     <input class="name-field" id="tbActualInput" type="number" min="0" step="1" placeholder="e.g. 47" value="${results.tiebreakerActual !== undefined ? results.tiebreakerActual : ''}" onchange="setTiebreakerActual(this.value)"/>
   </div>`;
+
+  if(players.length){
+    html += `<div class="card">
+      <p class="section-title">Who's paid · ${WEEKS[currentWeek].label}</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-top:-6px;">Starts as Not Paid each week — mark players off as their tokens come in. This shows next to their name on the Leaderboard.</p>`;
+    players.forEach(p=>{
+      const isPaid = !!p.paid;
+      html += `<div class="result-row">
+        <span class="result-game">${escapeHtml(p.name)}</span>
+        <span class="result-select">
+          <button class="${!isPaid?'picked':''}" onclick="setPaid('${escapeHtml(p.name).replace(/'/g,"\\'")}', false)">Not Paid</button>
+          <button class="${isPaid?'picked':''}" onclick="setPaid('${escapeHtml(p.name).replace(/'/g,"\\'")}', true)">Paid</button>
+        </span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   el.innerHTML = html;
+}
+
+async function setPaid(name, paid){
+  try{
+    await fsSetPaid(currentWeek, name, paid);
+  }catch(e){
+    const el = document.getElementById('tabResults');
+    el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't save that payment status: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`);
+    return;
+  }
+  renderResults();
 }
 
 async function setTiebreakerActual(v){
