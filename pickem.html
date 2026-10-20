@@ -304,6 +304,15 @@
     background:var(--chalk);
     cursor:pointer;
   }
+  .result-select button.clear-btn{
+    padding:5px 7px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .result-select button.clear-btn:disabled{
+    opacity:.3;
+    cursor:default;
+  }
   .result-select button.picked{
     background:var(--turf);
     color:#fff;
@@ -614,8 +623,28 @@ const WEEKS = {
       {id:"g13", away:"Cowboys", awayAbbr:"DAL", home:"Packers", homeAbbr:"GB", meta:"Sun Oct 18 · 8:20 PM"},
       {id:"g14", away:"Commanders", awayAbbr:"WAS", home:"49ers", homeAbbr:"SF", meta:"Mon Oct 19 · 8:15 PM"}
     ]
+  },
+  week7_2026: {
+    label: "Week 7",
+    deadline: "2026-10-22T20:15:00-04:00", // Thu Oct 22, 8:15 PM ET kickoff (Patriots @ Bears)
+    games: [
+      {id:"g1", away:"Patriots", awayAbbr:"NE", home:"Bears", homeAbbr:"CHI", meta:"Thu Oct 22 · 8:15 PM"},
+      {id:"g2", away:"Steelers", awayAbbr:"PIT", home:"Saints", homeAbbr:"NO", meta:"Sun Oct 25 · 9:30 AM · Paris"},
+      {id:"g3", away:"Browns", awayAbbr:"CLE", home:"Titans", homeAbbr:"TEN", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g4", away:"Bengals", awayAbbr:"CIN", home:"Ravens", homeAbbr:"BAL", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g5", away:"Colts", awayAbbr:"IND", home:"Vikings", homeAbbr:"MIN", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g6", away:"Dolphins", awayAbbr:"MIA", home:"Jets", homeAbbr:"NYJ", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g7", away:"Giants", awayAbbr:"NYG", home:"Texans", homeAbbr:"HOU", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g8", away:"49ers", awayAbbr:"SF", home:"Falcons", homeAbbr:"ATL", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g9", away:"Buccaneers", awayAbbr:"TB", home:"Panthers", homeAbbr:"CAR", meta:"Sun Oct 25 · 1:00 PM"},
+      {id:"g10", away:"Broncos", awayAbbr:"DEN", home:"Cardinals", homeAbbr:"AZ", meta:"Sun Oct 25 · 4:05 PM"},
+      {id:"g11", away:"Packers", awayAbbr:"GB", home:"Lions", homeAbbr:"DET", meta:"Sun Oct 25 · 4:25 PM"},
+      {id:"g12", away:"Rams", awayAbbr:"LAR", home:"Raiders", homeAbbr:"LV", meta:"Sun Oct 25 · 4:25 PM"},
+      {id:"g13", away:"Chiefs", awayAbbr:"KC", home:"Seahawks", homeAbbr:"SEA", meta:"Sun Oct 25 · 8:20 PM"},
+      {id:"g14", away:"Cowboys", awayAbbr:"DAL", home:"Eagles", homeAbbr:"PHI", meta:"Mon Oct 26 · 8:15 PM"}
+    ]
   }
-  // week7_2026: { label: "Week 7", deadline: "...", games: [...] },
+  // week8_2026: { label: "Week 8", deadline: "...", games: [...] },
 };
 
 // Pick which week to open by default: the most recent week whose first game
@@ -1117,6 +1146,7 @@ async function renderResults(){
         <button class="${winner==='away'?'picked':''}" onclick="setResult('${g.id}','away')">${g.awayAbbr}</button>
         <button class="${winner==='home'?'picked':''}" onclick="setResult('${g.id}','home')">${g.homeAbbr}</button>
         <button class="${winner==='tie'?'picked':''}" onclick="setResult('${g.id}','tie')" title="Game ended in a tie: no one gets credit">Tie</button>
+        <button class="clear-btn" ${winner?'':'disabled'} onclick="clearResult('${g.id}')" title="Clear this result (back to not played yet)" aria-label="Clear result for ${g.awayAbbr} @ ${g.homeAbbr}">✕</button>
       </span>
     </div>`;
   });
@@ -1159,16 +1189,31 @@ async function setPaid(name, paid){
 }
 
 async function setTiebreakerActual(v){
-  if(v === '') return;
   let results = {};
   try{ results = await fsGetResults(currentWeek); }catch(e){}
-  results.tiebreakerActual = Number(v);
+  if(v === '') delete results.tiebreakerActual;
+  else results.tiebreakerActual = Number(v);
   try{
     await fsSaveResults(currentWeek, results);
   }catch(e){
     const el = document.getElementById('tabResults');
     el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't save that value: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`);
   }
+}
+
+async function clearResult(gameId){
+  let results = {};
+  try{ results = await fsGetResults(currentWeek); }catch(e){}
+  delete results[gameId];
+  try{
+    await fsSaveResults(currentWeek, results);
+  }catch(e){
+    renderResults();
+    const el = document.getElementById('tabResults');
+    el.insertAdjacentHTML('afterbegin', `<div class="card err-banner"><p>Couldn't clear that result: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`);
+    return;
+  }
+  renderResults();
 }
 
 async function setResult(gameId, side){
