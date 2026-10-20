@@ -649,7 +649,7 @@ const WEEKS = {
 
 // Pick which week to open by default: the most recent week whose first game
 // has kicked off, rolling forward to the next published week once that week
-// is over (5 days after its Thursday kickoff = Tuesday evening, after Monday
+// is over (4.5 days after its Thursday kickoff = Tuesday 8:15 AM ET, after Monday
 // night football). If no week has started yet, open the first one.
 // The week dropdown still lets anyone look back or ahead.
 function defaultWeekId(){
@@ -659,7 +659,7 @@ function defaultWeekId(){
   let idx = -1;
   ids.forEach((id, i) => { if(now >= new Date(WEEKS[id].deadline)) idx = i; });
   if(idx === -1) return ids[0];
-  const weekOver = now >= new Date(new Date(WEEKS[ids[idx]].deadline).getTime() + 5*DAY);
+  const weekOver = now >= new Date(new Date(WEEKS[ids[idx]].deadline).getTime() + 4.5*DAY); // Thu 8:15 PM + 4.5 days = Tue 8:15 AM ET, after Monday night ends
   if(weekOver && idx + 1 < ids.length) idx++;
   return ids[idx];
 }
