@@ -176,17 +176,6 @@
     background:#C9BCAF;
     cursor:not-allowed;
   }
-  /* ---- Season wins bar chart (Leaderboard, under Weekly Champions) ---- */
-  .sw-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
-  .sw-name{flex:0 0 74px;font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .sw-track{display:block;flex:1;min-width:0;height:22px;background:#EFE9D6;border-radius:6px;overflow:hidden;}
-  .sw-bar{display:block;height:100%;min-width:3px;border-radius:6px;background:var(--leather);width:0;transition:width .7s ease-out;}
-  .sw-bar.top{background:var(--turf);}
-  .sw-bar.low{background:#B9B29B;}
-  .sw-val{flex:0 0 36px;text-align:right;font-size:13px;font-weight:800;color:var(--ink);}
-  .sw-tag{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:0 0 2px 82px;}
-  .sw-sub{font-size:11.5px;color:var(--ink-soft);margin:1px 0 0;}
-  @media (prefers-reduced-motion:reduce){.sw-bar{transition:none;}}
   .progress-note{
     font-size:12.5px;
     color:var(--ink-soft);
@@ -981,7 +970,6 @@ async function renderBoard(){
     launchConfetti(document.getElementById('confettiLayer'));
   }
   renderChampionsSection(el);
-  renderSeasonWins(el);
 }
 
 async function computeWeekWinners(weekId){
@@ -1034,78 +1022,6 @@ async function renderChampionsSection(el){
   if(listEl){
     listEl.innerHTML = lines.length ? lines.join('') : 'No completed weeks yet.';
   }
-}
-
-// ====== SEASON WINS: total correct picks per player across every week ======
-// Counts only games that have a recorded result (ties give no credit), so it
-// never reveals anything about games that haven't been played yet.
-async function computeSeasonWins(){
-  const weekIds = Object.keys(WEEKS);
-  const perWeek = await Promise.all(weekIds.map(async wid => {
-    try{
-      const [players, results] = await Promise.all([fsGetAllPicks(wid), fsGetResults(wid)]);
-      return {wid, players, results};
-    }catch(e){ return null; }
-  }));
-  const totals = new Map(); // lowercase name -> {name, wins, weeks}
-  let decided = 0;
-  perWeek.forEach(w => {
-    if(!w) return;
-    const weekGames = WEEKS[w.wid].games;
-    const played = weekGames.filter(g => w.results[g.id] === 'home' || w.results[g.id] === 'away');
-    if(!played.length) return;           // nothing finished yet this week
-    decided += played.length;
-    w.players.forEach(p => {
-      const key = String(p.name).toLowerCase();
-      const t = totals.get(key) || {name: p.name, wins: 0, weeks: 0};
-      played.forEach(g => { if(p.picks && p.picks[g.id] === w.results[g.id]) t.wins++; });
-      t.weeks++;
-      totals.set(key, t);
-    });
-  });
-  const rows = [...totals.values()].sort((a,b) => b.wins - a.wins || a.name.localeCompare(b.name));
-  return {rows, decided};
-}
-
-async function renderSeasonWins(el){
-  const container = document.createElement('div');
-  container.className = 'card';
-  container.innerHTML = `<p class="section-title">📊 Season Wins</p><div id="seasonWinsBody" style="font-size:13px;color:var(--ink-soft);">Loading…</div>`;
-  el.appendChild(container);
-  let data;
-  try{ data = await computeSeasonWins(); }catch(e){ data = null; }
-  const body = container.querySelector('#seasonWinsBody');
-  if(!body || !container.isConnected) return;   // user navigated away mid-load
-  if(!data || !data.rows.length){
-    body.innerHTML = 'No finished games yet. Season totals appear once results are in.';
-    return;
-  }
-  const {rows} = data;
-  const max = rows[0].wins, min = rows[rows.length-1].wins;
-  const showAwards = rows.length > 1 && max !== min;
-  let html = '';
-  rows.forEach(r => {
-    const isTop = showAwards && r.wins === max;
-    const isLow = showAwards && r.wins === min;
-    const pct = max > 0 ? Math.round(r.wins / max * 100) : 0;
-    html += `<div class="sw-row" title="${escapeHtml(r.name)}: ${r.wins} correct picks over ${r.weeks} week${r.weeks===1?'':'s'}">
-      <span class="sw-name">${escapeHtml(r.name)}</span>
-      <span class="sw-track"><span class="sw-bar ${isTop?'top':(isLow?'low':'')}" data-w="${pct}"></span></span>
-      <span class="sw-val">${r.wins}</span>
-    </div>`;
-  });
-  const tops = showAwards ? rows.filter(r => r.wins === max).map(r => escapeHtml(r.name)) : [];
-  const lows = showAwards ? rows.filter(r => r.wins === min).map(r => escapeHtml(r.name)) : [];
-  if(showAwards){
-    html += `<p class="sw-sub" style="margin-top:10px;">🏆 Most wins: <strong>${tops.join(', ')}</strong> (${max})</p>
-             <p class="sw-sub">🥄 Fewest wins: <strong>${lows.join(', ')}</strong> (${min})</p>`;
-  }
-  html += `<p class="sw-sub" style="margin-top:8px;">Total correct picks across all weeks, updated as results are entered. Ties give no credit.</p>`;
-  body.innerHTML = html;
-  // grow the bars after paint so the width transition plays
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    body.querySelectorAll('.sw-bar').forEach(b => { b.style.width = (b.getAttribute('data-w') || 0) + '%'; });
-  }));
 }
 
 // ====== GAME DAY TAB: how the group split on each game ======
